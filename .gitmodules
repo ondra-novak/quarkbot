@@ -1,0 +1,3 @@
+[submodule "src/lib/minicoro"]
+	path = src/lib/minicoro
+	url = https://github.com/ondra-novak/minicoro.git
