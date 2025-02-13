@@ -37,8 +37,13 @@ protected:
     std::shared_ptr<const T> _ptr;
 };
 
+struct EmptyDeleter {
+    template<typename T>
+    void operator()(T &&) {}
+};
+
 template<typename T>
 std::shared_ptr<const T> Wrapper<T>::null_instance_ptr = std::shared_ptr<const T>(
-                &Wrapper<T>::null_instance, [](auto){});
+                &Wrapper<T>::null_instance, EmptyDeleter{});
 
 }
