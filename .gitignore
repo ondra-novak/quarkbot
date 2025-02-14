@@ -1,2 +1,5 @@
 /.vscode
 /build
+/.cproject
+/.project
+/.settings

@@ -8,7 +8,11 @@ else()
 	set(STANDARD_LIBRARIES "pthread")
 endif()
 
-set(ENABLE_FIBER OFF CACHE BOOL "Include stackful coroutines, fibers, + tests")
+
+find_package(Git)
+if(GIT_EXECUTABLE)
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
 
 if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.0)
     add_compile_options(-fcoroutines)

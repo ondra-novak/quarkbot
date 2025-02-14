@@ -7,6 +7,7 @@
 #include <format>
 #include <charconv>
 #include <vector>
+#include <cmath>
 
 namespace _details {
 
@@ -124,7 +125,7 @@ public:
    std::to_chars_result to_chars( char* first, char* last ) const {
         return std::to_chars(first, last, _value, std::chars_format::fixed, get_decimal_count());
    }
-   
+
    std::string_view to_string(std::vector<char> &buffer) const {
         int count = 20;
         while (true) {
@@ -132,7 +133,7 @@ public:
             buffer.resize(count);
             auto result = to_chars(buffer.data(), buffer.data()+buffer.size());
             if (result.ec == std::errc::value_too_large) {
-                count +=20;                
+                count +=20;
             } else {
                 buffer.resize(result.ptr -buffer.data());
                 return {buffer.data(), buffer.size()};
@@ -157,11 +158,11 @@ public:
     template<typename Stream>
     friend Stream &operator<<(Stream &stream, FastDecimal me) {
         char buffer[128];
-        auto result = to_chars(buffer, buffer+sizeof(buffer));
+        auto result = me.to_chars(buffer, buffer+sizeof(buffer));
         std::string_view res;
         if (result.ec == std::errc::value_too_large) {
             std::vector<char> dynbuff;
-            res = to_string(dynbuff);            
+            res = me.to_string(dynbuff);
         } else {
             res = {buffer,result.ptr - buffer};
         }
@@ -178,9 +179,9 @@ public:
         if (!std::is_constant_evaluated()) {
             return std::round(x);
         } else {
-            constexpr double max_val = 
+            constexpr double max_val =
                 static_cast<double>(std::numeric_limits<std::uint64_t>::max());
-            constexpr double min_val = 
+            constexpr double min_val =
                 -static_cast<double>(std::numeric_limits<std::uint64_t>::max());
             if (x < 1 && x > -1) [[unlikely]] return 0;
             if (x >= max_val || x <= min_val) [[unlikely]] return x;
@@ -188,7 +189,7 @@ public:
                 ? static_cast<double>(static_cast<std::uint64_t>(x + 0.5))
                 : -static_cast<double>(static_cast<std::uint64_t>(-x + 0.5));
         }
-        
+
     }
 
 
