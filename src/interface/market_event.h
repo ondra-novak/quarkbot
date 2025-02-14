@@ -3,11 +3,11 @@
 namespace quarkbot
 {
     enum class MarketEvent {
-        ticker,
-        orderbook,
-        trade,
-        expiration,
-        funding
+        ticker,     /// < last ticker value
+        orderbook,  /// < last orderbook state
+        trade,      /// < last trade
+        funding,    /// < last funding 
+        instrument_info        /// < general information about the instrument
     };
 
 

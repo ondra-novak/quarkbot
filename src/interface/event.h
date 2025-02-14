@@ -27,7 +27,8 @@ public:
         MarketEvent,
         Order,
         OrderUpdate,
-        ExternalMessage
+        ExternalMessage,
+        std::exception_ptr 
     >;
 
     template<typename ... Args>
@@ -37,17 +38,25 @@ public:
     bool is_market_event() const {return std::holds_alternative<MarketEvent>(_ev_data);}
     bool is_order_event() const {return std::holds_alternative<Order>(_ev_data);}
     bool is_external_event() const {return std::holds_alternative<ExternalMessage>(_ev_data);}
+    bool is_exception() const {return std::holds_alternative<std::exception_ptr>(_ev_data);}
 
     const MarketEvent &get_market_event() const {return std::get<MarketEvent>(_ev_data);}
+    const Order &get_order_event() const {return std::get<Order>(_ev_data);}
+    const ExternalMessage &get_external_event() const {return std::get<ExternalMessage>(_ev_data);}
+    const std::exception_ptr &get_exception() const {return std::get<std::exception_ptr>(_ev_data);}
 
     variant_def &get_underlying_data() {return _ev_data;}
     const variant_def &get_underlying_data() const {return _ev_data;}
-
-
-
 protected:
 
     variant_def _ev_data;
+};
+
+class IEventTarget {
+public:
+
+    virtual ~IEventTarget() = default;
+    virtual void push_event(Event event) = 0;
 };
 
 
