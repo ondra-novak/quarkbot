@@ -1,4 +1,5 @@
 #include "../interface/context.h"
+#include "../interface/database.h"
 
 using namespace quarkbot;
 

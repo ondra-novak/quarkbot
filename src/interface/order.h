@@ -13,6 +13,8 @@ namespace quarkbot
 
 class Order;
 
+class IEventTarget;
+
 class OrderState {
 public:
     enum _ {
@@ -30,20 +32,21 @@ public:
         failed,         ///< order failed (error message is available)
         restored        ///< order has been restored from the database and no state is known yet
     };
+
     constexpr _ value() const {return _val;}
 
     constexpr std::string_view to_string() const {
         switch (_val) {
-            case pending_new: return "new";     
+            case pending_new: return "new";
             case associated: return "associated";
             case open: return "open";
             case filled: return "filled";
             case cancelled: return "canceled";
             case rejected: return "rejected";
-            case expired: return "expired";            
-            case pending_cancel: return "pending_cancel";            
-            case pending_replace: return "pending_replace";            
-            case replaced: return "replaced";            
+            case expired: return "expired";
+            case pending_cancel: return "pending_cancel";
+            case pending_replace: return "pending_replace";
+            case replaced: return "replaced";
             case failed: return "failed";
             case restored: return "restored";
             default: return "unknown";
@@ -58,7 +61,7 @@ public:
 protected:
     _ _val;
 };
-        
+
 
 
 
@@ -69,6 +72,7 @@ public:
     virtual ~IOrder() = default;
     virtual Account get_account() const = 0;
     virtual Instrument get_instrument() const = 0;
+    virtual IEventTarget *get_event_target() const = 0;
     virtual OrderState get_state() const  = 0;
     virtual const OrderSetup &get_setup() const = 0;
     virtual Quantity get_total_quantity() const = 0;
@@ -88,6 +92,7 @@ public:
     virtual Account get_account() const override {return {};};
     virtual Instrument get_instrument() const override {return {};}
     virtual OrderState get_state() const  override {return {};}
+    virtual IEventTarget *get_event_target() const {return nullptr;}
     virtual const OrderSetup &get_setup() const {return no_setup_order;}
     virtual Quantity get_total_quantity() const {return {};}
     virtual Quantity get_filled_quantity() const {return {};}
@@ -97,7 +102,7 @@ public:
     virtual std::string get_error() const {return {};}
     virtual void cancel() const {}
 
-    
+
 };
 
 class Order: public Wrapper<IOrder> {
@@ -139,13 +144,13 @@ public:
     ///Retrieve recent fills
     /**
      * The fills are carried with current event.
-     * Each event generates new list of fills.     
+     * Each event generates new list of fills.
      */
     std::span<Fill> get_fills() const {
         return _ptr->get_fills();
     }
     ///Cancel the order
-    /** 
+    /**
      * The order may receive pending_cancel and it is scheduled for cancelation
      * @note The function doesn't modify current state until next update
      */
@@ -159,7 +164,7 @@ public:
      * @param label optional label
      * @return new order
      * @exception OrderError If exception is thrown, original order is not affected
-     * 
+     *
      * @note you can replace done orders, they are treat as associated
      */
      Order replace(Quantity new_quantity, const OrderSetup &params, std::string_view label = {}) const {
@@ -167,11 +172,15 @@ public:
     }
     ///returns true if order is done
     bool is_done() const {
-        return _ptr->get_state().is_final();        
+        return _ptr->get_state().is_final();
     }
     ///returns error message - applied for orders rejected and failed
     std::string get_error() const {
         return _ptr->get_error();
+    }
+    ///Retrieve order's event target (this target receives order updates)
+    virtual IEventTarget *get_event_target() const {
+        return _ptr->get_event_target();
     }
 
 };
@@ -182,7 +191,7 @@ public:
 class IOrderState {
 public:
     virtual ~IOrderState() = default;
-    ///apply update and return associated order 
+    ///apply update and return associated order
     virtual Order apply_update() = 0;
 };
 
@@ -199,31 +208,34 @@ inline Order IOrder::Null::replace(Quantity , const OrderSetup &, std::string_vi
 ///Interface should be inherited by an instrument to support serialization of orders into the database
 class IInstrumentOrderSerialization : public IInstrument {
 public:
-    ///Serialize order to string representation which can be stored in the database 
+    ///Serialize order to string representation which can be stored in the database
     /**
      * @param order which has been associated with current instrument
-     * @return binary representation
-     * 
-     * @note the binary representation doesn't need to store whole order if the order is 
+     * @return binary representation returned as two string. The first is unique identification
+     * of the order (must be unique across account and exchanges), the second is
+     * binary representation.
+     *
+     * @note the binary representation doesn't need to store whole order if the order is
      * is also available from exchange report. It can only contain order's ID
-     * 
+     *
      * The string must contain some identification of the exchange and instrument, as
      * it must be able to reject binary representation for order which is not
      * created for this instrument. During restoration phase all stored orders
      * are processed by all instruments.
-     * 
+     *
      * To restore order, use restore_order
      */
-    virtual std::string serialize_order(const Order &order) const = 0;    
+    virtual std::pair<std::string,std::string> serialize_order(const Order &order) const = 0;
     ///Restores order from binary representation
     /**
      * @param order_bin binary representation
      * @return Order object. If the binary representation is not recognized, returned
-     * object is not valid order. Otherwise the order is created in "restored". 
+     * object is not valid order. Otherwise the order is created in "restored".
      */
-    virtual Order restore_order(const std::string_view order_bin) const = 0;
+    virtual Order restore_order(KeyValue order_bin) const = 0;
 
 };
+
 
 
 } // namespace quarkbot

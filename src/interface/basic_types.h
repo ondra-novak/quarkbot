@@ -41,8 +41,8 @@ public:
     enum _ {
         UNKNOWN,        ///< uknown source
         STRATEGY,       ///< order has been created by strategy
-        RESTORED,       ///< order has been restored from the database 
-        EXTERNAL,       ///< order has been created outside of strategy                
+        RESTORED,       ///< order has been restored from the database
+        EXTERNAL,       ///< order has been created outside of strategy
     };
 
     _ value() const {return _val;}
@@ -133,6 +133,11 @@ public:
     virtual Clonable *clone(void *address) const override  {return new(address) Clonable(*this);}
     virtual size_t get_object_size() const override  {return sizeof(Clonable);}
     constexpr virtual ~Clonable() = default;
+};
+
+struct KeyValue {
+        std::string_view key;
+        std::string_view value;
 };
 
 

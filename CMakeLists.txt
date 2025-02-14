@@ -25,5 +25,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX "/usr/local" CACHE PATH "Default path to install" FORCE)
 endif()
 enable_testing()
+add_subdirectory("src/impl")
 add_subdirectory("src/tests")
 
