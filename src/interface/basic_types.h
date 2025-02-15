@@ -23,6 +23,7 @@ public:
     constexpr std::string_view to_string() const {
         return _val == BID?"BID":_val == ASK?"ASK":"UNDEFINED";
     }
+    constexpr _ value() const {return _val;}
     constexpr Side(_ val):_val(val) {}
     constexpr Side():_val(UNDEFINED) {}
     constexpr bool operator==(const Side &other) const = default;
@@ -134,6 +135,7 @@ public:
     virtual size_t get_object_size() const override  {return sizeof(Clonable);}
     constexpr virtual ~Clonable() = default;
 };
+
 
 struct KeyValue {
         std::string_view key;

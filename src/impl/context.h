@@ -2,6 +2,7 @@
 
 #include "ischeduler.h"
 #include "../interface/context.h"
+#include "../interface/event_target.h"
 #include "../interface/database.h"
 #include "../lib/minicoro/coro_distributor.h"
 
@@ -9,7 +10,12 @@
 #include <queue>
 #include <vector>
 
+
+
 namespace quarkbot {
+
+class IMessageQueue;
+class IScheduler;
 
 class StrategyContextImpl: public StrategyContext,
                            public IEventTarget
@@ -18,6 +24,7 @@ public:
 
 
     StrategyContextImpl(IScheduler &sch,            //scheduler
+                        IMessageQueue &msgq,        //message queue
                         Database db,                //database handler
                         std::string_view db_prefix, //database prefix
                         Instruments instruments);   //list of instruments
@@ -37,7 +44,31 @@ public:
     virtual bool interrupt(TimerID id) override;
     virtual TimeStamp get_event_time() const;
 
+    virtual void var_set_string(std::string_view name, std::string_view value) override;
+    virtual std::optional<std::string> var_get_string(std::string_view name) override;
+    virtual async_generator<KeyValue> var_list_range(std::string_view from_range,
+               std::string_view to_range, unsigned int skip_prefix) override;
+    virtual void var_erase(std::string_view key)override;
+    virtual async_generator<Fill> get_recent_fills() override;
+    virtual async_generator<Fill> get_fills_from(TimeStamp tp) override;
+    virtual const Instruments &get_instruments() const override;
 
+    virtual void push_event(Event event);
+    virtual void set_subscription(const Instrument &instrument, MarketEvents event);
+
+    virtual void subscribe_channel(const std::string_view channel) override;
+    virtual void unsubscribe_channel(const std::string_view channel) override;
+    virtual bool send_message(std::string_view channel, std::string_view message, unsigned int conversation_id = 0) override;
+
+
+    void unsubscribe_all();
+    virtual awaitable<void> update_account(const Account &account) override;
+    virtual void cancel_all_orders(const Instrument &instr) override;
+    virtual Order place_order(const Instrument &instrument, Quantity quantity,
+            const OrderSetup &params, std::string_view label) override;
+    virtual Order prepare_order(const Instrument &instrument, std::string_view label) override;
+    virtual awaitable<void> update_instrument( const Instrument &instrument, MarketEvents events) override;
+    virtual async_generator<Order> restore_open_orders(const Instrument &instr) override;
 
 protected:
     using Queue = std::deque<Event>;
@@ -46,6 +77,7 @@ protected:
 
     std::mutex _mx;
     IScheduler &_sch;
+    IMessageQueue &_mq;
     alert_flag_type _alert;
     Queue _queue;
     bool _quit_flag = false;
@@ -56,7 +88,6 @@ protected:
     std::string _db_prefix;
     std::size_t _db_prefix_len;
     Instruments _instruments;
-    std::uint32_t _fill_uid = 0;
 
 
 
@@ -79,7 +110,6 @@ protected:
 
     static void handle_coro_exception();
 
-    virtual void push_event(Event event);
     coroutine<void> main_loop();
     bool pop_event(Event &event);
 
@@ -98,15 +128,7 @@ protected:
     bool process_event(std::exception_ptr &ev);
 
     void flush_batches();
-    virtual void var_set_string(std::string_view name, std::string_view value) override;
-    virtual std::optional<std::string> var_get_string(std::string_view name) override;
-    virtual async_generator<KeyValue> var_list_range(std::string_view from_range,
-               std::string_view to_range, unsigned int skip_prefix) override;
-    virtual void var_erase(std::string_view key)override;
-    virtual async_generator<Fill> get_recent_fills() override;
-    virtual async_generator<Fill> get_fills_from(TimeStamp tp) override;
-    virtual const Instruments &get_instruments() const override;
-};
-
+    async_generator<Order> restore_orders(async_generator<KeyValue> gen, const Instrument &instr);
+    };
 
 }

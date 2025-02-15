@@ -1,8 +1,8 @@
 #pragma once
 
+#include "coroutines.h"
 #include <variant>
 #include "instrument.h"
-#include "flagmap.h"
 #include "market_event.h"
 #include "order.h"
 #include "fill.h"
@@ -11,7 +11,7 @@
 
 namespace quarkbot {
 
-using MarketEvents = FlagMap<MarketEvent>;
+
 
 struct MarketEventOnInstrument {
     Instrument instr;
@@ -75,13 +75,6 @@ public:
 protected:
 
     variant_def _ev_data;
-};
-
-class IEventTarget {
-public:
-
-    virtual ~IEventTarget() = default;
-    virtual void push_event(Event event) = 0;
 };
 
 

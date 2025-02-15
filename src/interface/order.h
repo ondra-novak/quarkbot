@@ -70,7 +70,6 @@ public:
     using State = OrderState;
 
     virtual ~IOrder() = default;
-    virtual Account get_account() const = 0;
     virtual Instrument get_instrument() const = 0;
     virtual IEventTarget *get_event_target() const = 0;
     virtual OrderState get_state() const  = 0;
@@ -89,7 +88,6 @@ class IOrder::Null: public IOrder {
 public:
     static constexpr OrderType::no_setup no_setup_order = {};
 
-    virtual Account get_account() const override {return {};};
     virtual Instrument get_instrument() const override {return {};}
     virtual OrderState get_state() const  override {return {};}
     virtual IEventTarget *get_event_target() const {return nullptr;}
@@ -110,10 +108,6 @@ public:
     using State = OrderState;
 
     using Wrapper<IOrder>::Wrapper;
-    /// get associated account
-    Account get_account() const {
-        return _ptr->get_account();
-    }
     /// get associated instrument
     Instrument get_instrument() const {
         return _ptr->get_instrument();

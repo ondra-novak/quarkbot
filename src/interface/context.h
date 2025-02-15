@@ -98,12 +98,16 @@ public:
      *
      * This order doesn't receive updates, it is in done state already.
      */
-    virtual Order prepare_order(const Instrument &instrument) = 0;
+    virtual Order prepare_order(const Instrument &instrument, std::string_view label) = 0;
 
-    ///subscribe for market events
-    virtual void subscribe(const Instrument &instrument, MarketEvent event) = 0;
-    ///unsubscribe market events
-    virtual void unsubscribe(const Instrument &instrument, MarketEvent event) = 0;
+    ///Sets subscription
+    /**
+     * @param instrument selected instrument
+     * @param event subscribed events. At the beginning, no events are subscribed. You
+     * need to call this function to subscribe some events. To unsubscribe, just
+     * call this function with no events
+     */
+    virtual void set_subscription(const Instrument &instrument, MarketEvents event) = 0;
     ///subscribe message channel
     virtual void subscribe_channel(const std::string_view channel) = 0;
     ///unsubscribe message channel
@@ -187,7 +191,7 @@ public:
      * subject or rate limiting)
      *
      */
-    virtual awaitable<void> update_instrument(const Instrument &instrument, FlagMap<MarketEvent> events) = 0;
+    virtual awaitable<void> update_instrument(const Instrument &instrument, MarketEvents events) = 0;
 
 
     ///Send message to a MQ channel (zeromq)

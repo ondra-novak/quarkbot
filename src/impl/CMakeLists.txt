@@ -1,4 +1,5 @@
 
 add_library(quarkbot 
-    context.cpp   
+    context.cpp
+    subscriber.cpp   
 )

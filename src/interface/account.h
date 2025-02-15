@@ -8,6 +8,7 @@
 namespace quarkbot
 {
 
+class IExchange;
 
 class IAccount {
 public:
@@ -19,7 +20,10 @@ public:
     virtual Quantity get_tradable_balance() const = 0;
     virtual Quantity get_equity() const = 0;
     virtual Quantity get_blocked() const = 0;
-    virtual bool is_leveraged() const = 0;    
+    virtual bool is_leveraged() const = 0;
+
+    ///retrieve pointer to exchange - to control the account and its instumentss
+    virtual std::shared_ptr<IExchange> get_exchange() const = 0;
 
     class Null;
 };
@@ -34,6 +38,7 @@ virtual Quantity get_tradable_balance() const override {return {0,0};}
 virtual Quantity get_equity() const override {return {0,0};}
 virtual Quantity get_blocked() const override {return {0,0};}
 virtual bool is_leveraged() const override {return false;}
+virtual std::shared_ptr<IExchange> get_exchange() const override {return {};}
 
 };
 
@@ -87,7 +92,7 @@ public:
     }
     ///Retrieve tradable balance
     /**
-     * This return amount of money available for opening new orders. For the spot 
+     * This return amount of money available for opening new orders. For the spot
      * accounts, this value is equal to amount of funds on the account minus
      * funds allocated for orders. For leverages accounts, this value
      * can contain total funds minus sum of funds used for orders and
@@ -112,7 +117,7 @@ public:
     bool is_leveraged() const {
         return _ptr->is_leveraged();
     }
-        
+
 };
 
 

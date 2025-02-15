@@ -1,10 +1,15 @@
 #include "context.h"
+#include "../interface/exchange.h"
+#include "../interface/mq.h"
+#include "prepared_order.h"
 
 namespace quarkbot {
 
 StrategyContextImpl::StrategyContextImpl(IScheduler &sch,
+        IMessageQueue &mq,
         Database db, std::string_view db_prefix, Instruments instruments)
 :_sch(sch)
+,_mq(mq)
 ,_db(std::move(db))
 ,_batch(_db.new_batch())
 ,_db_prefix(db_prefix)
@@ -21,7 +26,7 @@ void StrategyContextImpl::handle_coro_exception() {
 
 void StrategyContextImpl::init_exception_handler() {
     current_strategy = this;
-    minicoro::async_unhandled_exception = &handle_coro_exception;
+    async_unhandled_exception = &handle_coro_exception;
 }
 
 
@@ -137,7 +142,7 @@ bool StrategyContextImpl::process_event(Order &ev) {
                 static_cast<std::uint64_t>(
                         std::chrono::duration_cast<std::chrono::microseconds>(fill.time.time_since_epoch()).count()),
                 std::back_inserter(_db_prefix));
-        Database::append_number(_fill_uid++, std::back_inserter(_db_prefix));
+        _db_prefix.append(fill.fill_id);
         _batch.set_key(_db_prefix, std::string_view(reinterpret_cast<const char *>(&fill),sizeof(fill)));
         _db_prefix.resize(_db_prefix_len);
     }
@@ -251,16 +256,60 @@ bool StrategyContextImpl::process_event(std::exception_ptr &ev) {
     return false;
 }
 
+void StrategyContextImpl::set_subscription(const Instrument &instrument, MarketEvents events) {
+    Account acc = instrument.get_account();
+    auto exchange = acc.get_handle()->get_exchange();
+    exchange->set_subscription(instrument, events, this);
+}
+
+void StrategyContextImpl::subscribe_channel(const std::string_view channel) {
+    _mq.subscribe(this, channel);
+}
+
+void StrategyContextImpl::unsubscribe_channel(const std::string_view channel) {
+    _mq.unsubscribe(this, channel);
+}
+
+bool StrategyContextImpl::send_message(std::string_view channel,
+        std::string_view message, unsigned int conversation_id) {
+    return _mq.send_message(this, channel, message, conversation_id);
+}
+
+
+awaitable<void> StrategyContextImpl::update_account(const Account &account) {
+    return account.get_handle()->get_exchange()->update_account(this, account);
+}
+
+void StrategyContextImpl::cancel_all_orders(const Instrument &instr) {
+    return instr.get_account().get_handle()->get_exchange()->cancel_all_orders(this, instr);
+}
+
+Order StrategyContextImpl::place_order(const Instrument &instrument,
+        Quantity quantity, const OrderSetup &params, std::string_view label) {
+    Order ord = instrument.get_account().get_handle()->get_exchange()
+                ->create_order(this, instrument, quantity, params, label);
+    _batch_place.push_back(ord);
+    return ord;
+}
+
+Order StrategyContextImpl::prepare_order(const Instrument &instrument, std::string_view label) {
+    return Order(std::make_shared<PreparedOrder>(instrument, label, this));
+}
+
+awaitable<void> StrategyContextImpl::update_instrument(
+        const Instrument &instrument, MarketEvents events) {
+    return instrument.get_account().get_handle()
+            ->get_exchange()->update_instrument(this, instrument, events);
+}
+
 
 void StrategyContextImpl::flush_batches() {
-    //todo - process all orders
     _batch_cancel.clear();
     _batch_place.clear();
     _db.commit_batch(_batch);
 }
 
-void StrategyContextImpl::var_set_string(std::string_view name,
-        std::string_view value) {
+void StrategyContextImpl::var_set_string(std::string_view name, std::string_view value) {
     _db_prefix.append(var_prefix).append(name);
     _batch.set_key(_db_prefix, value);
     _db_prefix.resize(_db_prefix_len);
@@ -294,7 +343,7 @@ void StrategyContextImpl::var_erase(std::string_view key) {
 
 static async_generator<Fill> extract_fill_from_kv(async_generator<KeyValue> gen) {
     auto awt = gen();
-    while (awt.has_value()) {
+    while (co_await awt.has_value()) {
         const KeyValue &kv = awt.await_resume();
         const Fill *f = reinterpret_cast<const Fill *>(kv.value.data());
         co_yield std::move(*f);
@@ -327,4 +376,42 @@ async_generator<Fill> StrategyContextImpl::get_recent_fills() {
 const StrategyContextImpl::Instruments &StrategyContextImpl::get_instruments() const {
     return _instruments;
 }
+
+void StrategyContextImpl::unsubscribe_all() {
+    for (const auto &x: _instruments) {
+        x.instrument.get_account().get_handle()
+                ->get_exchange()->set_subscription(x.instrument, MarketEvents{},this);
+    }
+    _mq.unsubscribe_all(this);
+}
+
+
+async_generator<Order> StrategyContextImpl::restore_orders(async_generator<KeyValue> gen, const Instrument &instr) {
+    auto awt = gen();
+    auto ex = instr.get_account().get_handle()->get_exchange();
+    while (co_await awt.has_value()) {
+        const KeyValue &kv = awt.await_resume();
+        if (kv.key.substr(0, order_prefix.length()) != order_prefix) break;
+        std::string_view key = kv.key.substr(order_prefix.length());
+        auto awt2 =  ex->restore_order(this, instr, key, kv.value);
+        if (co_await awt2.has_value()) {
+            co_yield awt2.await_resume();
+        }
+    }
+}
+
+
+async_generator<Order> StrategyContextImpl::restore_open_orders(const Instrument &instr) {
+
+    std::string beg = _db_prefix;
+    beg.append(order_prefix);
+    auto iterator = _db.iterate(beg,false,_db_prefix_len);
+    return restore_orders(std::move(iterator), instr);
+
+
+
+}
+
+
+
 }
