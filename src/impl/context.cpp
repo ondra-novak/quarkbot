@@ -318,16 +318,16 @@ void StrategyContextImpl::var_set_string(std::string_view name, std::string_view
 
 
 std::optional<std::string> StrategyContextImpl::var_get_string(
-        std::string_view name) {
-    _db_prefix.append(var_prefix).append(name);
-    auto r = _db.get_value(_db_prefix);
-    _db_prefix.erase(_db_prefix_len);
+        std::string_view name)const {
+    std::string pfx = _db_prefix;
+    pfx.append(var_prefix).append(name);
+    auto r = _db.get_value(pfx);
     return r;
 }
 
 async_generator<KeyValue> StrategyContextImpl::var_list_range(
         std::string_view from_range, std::string_view to_range,
-        unsigned int skip_prefix) {
+        unsigned int skip_prefix) const {
     std::string from = _db_prefix;
     std::string to = _db_prefix;
     from.append(from_range);
@@ -351,7 +351,7 @@ static async_generator<Fill> extract_fill_from_kv(async_generator<KeyValue> gen)
     }
 }
 
-async_generator<Fill> StrategyContextImpl::get_fills_from(TimeStamp tp) {
+async_generator<Fill> StrategyContextImpl::get_fills_from(TimeStamp tp) const {
     std::string from = _db_prefix;
     from.append(fill_prefix);
     std::string to = from;
@@ -363,7 +363,7 @@ async_generator<Fill> StrategyContextImpl::get_fills_from(TimeStamp tp) {
 
 }
 
-async_generator<Fill> StrategyContextImpl::get_recent_fills() {
+async_generator<Fill> StrategyContextImpl::get_recent_fills() const{
     std::string from = _db_prefix;
     from.append(fill_prefix);
     std::string to = from;

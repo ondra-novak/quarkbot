@@ -45,12 +45,12 @@ public:
     virtual TimeStamp get_event_time() const;
 
     virtual void var_set_string(std::string_view name, std::string_view value) override;
-    virtual std::optional<std::string> var_get_string(std::string_view name) override;
+    virtual std::optional<std::string> var_get_string(std::string_view name) const override ;
     virtual async_generator<KeyValue> var_list_range(std::string_view from_range,
-               std::string_view to_range, unsigned int skip_prefix) override;
+               std::string_view to_range, unsigned int skip_prefix) const override;
     virtual void var_erase(std::string_view key)override;
-    virtual async_generator<Fill> get_recent_fills() override;
-    virtual async_generator<Fill> get_fills_from(TimeStamp tp) override;
+    virtual async_generator<Fill> get_recent_fills() const override;
+    virtual async_generator<Fill> get_fills_from(TimeStamp tp) const override;
     virtual const Instruments &get_instruments() const override;
 
     virtual void push_event(Event event);

@@ -1,5 +1,5 @@
 #pragma once
-#include "flagmap.h"
+#include "../lib/utils/flagmap.h"
 
 namespace quarkbot
 {

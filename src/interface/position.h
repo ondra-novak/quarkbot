@@ -6,30 +6,22 @@
 
 namespace quarkbot {
 
-class PositionType {
-public:
-    enum _ {
-        UNDEFINED,
-        LONG,
-        SHORT,
+DECLARE_ENUM_CLASS(PositionDirection,
+        undefined,      ///<position is not defined
+        flat,           ///<position is flat
+        buy_long,       ///<position is buy long
+        sell_short      ///<position is sell short
+);
 
-    };
-    int get_sign() const {
-        return _val == LONG?1:_val == SHORT?-1:0;
-    }
-    std::string_view to_string() const {
-        return _val == LONG?"LONG":_val == SHORT?"SHORT":"UNDEFINED";
-    }
-    constexpr PositionType(_ val):_val(val) {}
-    constexpr PositionType():_val(UNDEFINED) {}
-    constexpr bool operator==(const PositionType &other) const=default;
-protected:
-    _ _val;
-};
-        
+template<typename X>
+requires(std::is_arithmetic_v<X>)
+X operator * (PositionDirection s, X val) {return (s == PositionDirection::sell_short?-1:s==PositionDirection::buy_long?1:0) * val;}
+template<typename X>
+requires(std::is_arithmetic_v<X>)
+X operator * (X val, PositionDirection s) {return val * (s == PositionDirection::sell_short?-1:s==PositionDirection::buy_long?1:0);}
 
 struct Position {
-    PositionType type;      ///< position type (long/short)
+    PositionDirection type;      ///< position type (long/short)
     Quantity quantity;      ///< amount of position
     std::optional<TimeStamp> open_time;    ///< time when position has been opened
     std::optional<Price> open_price;       ///< open price (can be aggregated)

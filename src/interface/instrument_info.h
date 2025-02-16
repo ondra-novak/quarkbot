@@ -7,11 +7,11 @@
 
 namespace quarkbot {
 
-enum class AlignmentStrategy {
+DECLARE_ENUM_CLASS(AlignmentStrategy,
     defensive,  ///< align price or quantity by defensive strategy (less likely to fill)
     aggresive,  ///< align price or quantity by aggresive strategy (more likely to fill)
     nearest     ///< align price or quantity to nearest tick / lot size
-};
+);
 
 
 class IInstrumentInfo {
@@ -66,35 +66,35 @@ public:
      * @param price price to align
      * @param alignemnt price aligment
      * @param side trading side
-     * @param cover_fees shift price to cover potential fees. 
+     * @param cover_fees shift price to cover potential fees.
      *   For example ASK side shifts price higher, because raised profit from sell covers fees.
      *   The same for BID side which shifts price lower
      * @return Price object which can be passed to the place_order
-     * 
+     *
      */
     Price align_price(double price, AlignmentStrategy aligment, Side side, bool cover_fees = false) const {
         Price tksz = _ptr->get_tick_size();
         double dtksz = tksz;
-        if (side == Side::ASK) {
+        if (side == Side::ask) {
             if (cover_fees) {
                 price = price * (1.0 + get_fee_ratio());
             }
-            switch (aligment) {
-                case AlignmentStrategy::aggresive: 
+            switch (aligment.value()) {
+                case AlignmentStrategy::aggresive:
                     return Price(std::floor(price/dtksz)*dtksz, tksz.get_decimal_count());
-                case AlignmentStrategy::defensive: 
+                case AlignmentStrategy::defensive:
                     return Price(std::ceil(price/dtksz)*dtksz, tksz.get_decimal_count());
                 default:
                     return Price(std::round(price/dtksz)*dtksz, tksz.get_decimal_count());
             }
-        } else if (side == Side::BID) {
+        } else if (side == Side::bid) {
             if (cover_fees) {
                 price = price - (1.0 + get_fee_ratio());
             }
-            switch (aligment) {
-                case AlignmentStrategy::aggresive: 
+            switch (aligment.value()) {
+                case AlignmentStrategy::aggresive:
                     return Price(std::ceil(price/dtksz)*dtksz, tksz.get_decimal_count());
-                case AlignmentStrategy::defensive: 
+                case AlignmentStrategy::defensive:
                     return Price(std::floor(price/dtksz)*dtksz, tksz.get_decimal_count());
                 default:
                     return Price(std::round(price/dtksz)*dtksz, tksz.get_decimal_count());
@@ -112,10 +112,10 @@ public:
     Quantity align_quantity(double quantity, AlignmentStrategy aligment) const {
         Price lotsz = _ptr->get_quantity_step();
         double dlotsz = lotsz;
-        switch (aligment) {
-            case AlignmentStrategy::aggresive: 
+        switch (aligment.value()) {
+            case AlignmentStrategy::aggresive:
                 return Price(std::ceil(quantity/dlotsz)*dlotsz, lotsz.get_decimal_count());
-            case AlignmentStrategy::defensive: 
+            case AlignmentStrategy::defensive:
                 return Price(std::floor(quantity/dlotsz)*dlotsz, lotsz.get_decimal_count());
             default:
                 return Price(std::round(quantity/dlotsz)*dlotsz, lotsz.get_decimal_count());
@@ -141,14 +141,14 @@ public:
     double get_fee_ratio() const {
         return _ptr->get_fee_ratio();
     }
-    ///Get market type 
+    ///Get market type
     MarketType get_type() const {
         return _ptr->get_type();
     }
     ///Get multiplier between quantity value and actual amount of assets
     /**
-     * For example if multiplier is 100000, then quantity 0.1 means 10000 items. 
-     * This is tipical on Forex 
+     * For example if multiplier is 100000, then quantity 0.1 means 10000 items.
+     * This is tipical on Forex
      */
     double get_quantity_multiplier() const {
         return _ptr->get_quantity_multiplier();
@@ -163,17 +163,17 @@ public:
     }
 
     ///Generates MarketFillInfo structure which can be stored in database
-    MarketFillInfo get_fill_info() const { 
+    MarketFillInfo get_fill_info() const {
         return {
             get_type(),
             get_quantity_multiplier(),
             get_price_multiplier()
         };
-    }    
+    }
 
     ///Calculate minimal quantity at given price
     /** Because some exchanges also defines minimal volume, this function calculates absolute minimum
-     * allowed quantity at given price 
+     * allowed quantity at given price
      */
     Quantity get_min_quantity_at_price(Price price) const {
         return  std::max(std::max(align_quantity(
@@ -181,7 +181,7 @@ public:
             AlignmentStrategy::aggresive),get_min_quantity_size()), get_tick_size());
     }
 
- 
+
 
 };
 

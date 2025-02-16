@@ -15,9 +15,7 @@ class Order;
 
 class IEventTarget;
 
-class OrderState {
-public:
-    enum _ {
+DECLARE_ENUM_CLASS(OrderStateBase,
         unknown,        ///< state of an order is unknown
         associated,     ///< order is associated with account and instrument
         pending_new,    ///< order has been posted to exchange, no status received yet
@@ -31,35 +29,14 @@ public:
         replaced,       ///< order has been replaced (sent to replaced - final state)
         failed,         ///< order failed (error message is available)
         restored        ///< order has been restored from the database and no state is known yet
-    };
+);
 
-    constexpr _ value() const {return _val;}
-
-    constexpr std::string_view to_string() const {
-        switch (_val) {
-            case pending_new: return "new";
-            case associated: return "associated";
-            case open: return "open";
-            case filled: return "filled";
-            case cancelled: return "canceled";
-            case rejected: return "rejected";
-            case expired: return "expired";
-            case pending_cancel: return "pending_cancel";
-            case pending_replace: return "pending_replace";
-            case replaced: return "replaced";
-            case failed: return "failed";
-            case restored: return "restored";
-            default: return "unknown";
-        }
-    }
-    constexpr OrderState(_ val):_val(val) {}
-    constexpr OrderState():_val(unknown) {}
-    constexpr bool operator==(const OrderState &other) const = default;
+class OrderState: public OrderStateBase {
+public:
+    using OrderStateBase::OrderStateBase;
     constexpr bool is_final() const {
-        return _val != pending_new && _val != open && _val != pending_cancel && _val != pending_replace;
+        return _value != pending_new && _value != open && _value != pending_cancel && _value != pending_replace;
     }
-protected:
-    _ _val;
 };
 
 

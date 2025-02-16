@@ -32,8 +32,8 @@ public:
 
     void update(const Update &up) {
         switch (up.side.value()) {
-            case Side::BID: update_bid(up.level, up.amount);break;
-            case Side::ASK: update_ask(up.level, up.amount);break;
+            case Side::bid: update_bid(up.level, up.amount);break;
+            case Side::ask: update_ask(up.level, up.amount);break;
             default:break;
         }
     }

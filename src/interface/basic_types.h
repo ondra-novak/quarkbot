@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fastdecimal.h"
+#include "../lib/utils/named_enum_class.h"
 #include <chrono>
 
 namespace quarkbot
@@ -9,108 +10,62 @@ namespace quarkbot
 using Price = FastDecimal;
 using Quantity = FastDecimal;
 
-class Side {
-public:
-    enum _ {
-        UNDEFINED,
-        BID,
-        ASK,
+DECLARE_ENUM_CLASS(Side,
+            undefined, ///<undefined side
+            bid,       ///<at bid side
+            ask);      ///<at ask side
 
-    };
-    constexpr int get_sign() const {
-        return _val == BID?1:_val == ASK?-1:0;
-    }
-    constexpr std::string_view to_string() const {
-        return _val == BID?"BID":_val == ASK?"ASK":"UNDEFINED";
-    }
-    constexpr _ value() const {return _val;}
-    constexpr Side(_ val):_val(val) {}
-    constexpr Side():_val(UNDEFINED) {}
-    constexpr bool operator==(const Side &other) const = default;
-protected:
-    _ _val;
-};
-
+template<typename X>
+requires(std::is_arithmetic_v<X>)
+X operator * (Side s, X val) {return (s == Side::ask?-1:s==Side::bid?1:0) * val;}
+template<typename X>
+requires(std::is_arithmetic_v<X>)
+X operator * (X val, Side s) {return val * (s == Side::ask?-1:s==Side::bid?1:0);}
 
 using TimeStamp = std::chrono::system_clock::time_point;
 using Duration = std::chrono::system_clock::duration;
 using TimerID = std::size_t;
 
+DECLARE_ENUM_CLASS(OrderSource,
+        unknown,        ///< Unknown source
+        strategy,       ///< order has been created by strategy
+        restored,       ///< order has been restored from the database
+        external       ///< order has been created outside of strategy
+);
 
-class OrderSource {
-public:
-    enum _ {
-        UNKNOWN,        ///< uknown source
-        STRATEGY,       ///< order has been created by strategy
-        RESTORED,       ///< order has been restored from the database
-        EXTERNAL,       ///< order has been created outside of strategy
-    };
-
-    _ value() const {return _val;}
-
-    constexpr std::string_view to_string() const {
-        switch(_val) {
-            case STRATEGY: return "STRATEGY";
-            case RESTORED: return "RESTORED";
-            case EXTERNAL: return "EXTERNAL";
-            default: return "UNKNOWN";
-        }
-    }
-    constexpr OrderSource(_ val):_val(val) {}
-    constexpr OrderSource():_val(UNKNOWN) {}
-    constexpr bool operator==(const OrderSource &other) const = default;
-protected:
-    _ _val;
-};
-
-class MarketType {
-public:
-    enum _ {
+DECLARE_ENUM_CLASS(MarketTypeBase,
         normal,     ///< normal market type
-        inversed,   ///< inversed market type
-    };
+        inversed    ///< inversed market type
+);
 
-    _ value() const {return _val;}
-
-    constexpr std::string_view to_string() const {
-        switch(_val) {
-            case normal: return "normal";
-            case inversed: return "inversed";
-            default: return "unknown";
-        }
-    }
-    constexpr MarketType(_ val):_val(val) {}
-    constexpr MarketType():_val(normal) {}
-    constexpr bool operator==(const MarketType &other) const = default;
-
-    double calculate_pnl(Price open_price, Price close_price, double total_quantity) {
-        if (_val == normal) {
+class MarketType: public MarketTypeBase {
+public:
+    using MarketTypeBase::MarketTypeBase;
+    constexpr double calculate_pnl(Price open_price, Price close_price, double total_quantity) {
+        if (_value == normal) {
             return (close_price - open_price) * total_quantity;
         } else {
             return (1.0/open_price - 1.0/close_price) * total_quantity;
         }
     }
 
-    double to_normal_price(Price price) const {
-        if (_val == normal) return price;
+    constexpr double to_normal_price(Price price) const {
+        if (_value == normal) return price;
         return 1.0/price;
     }
-    Quantity to_normal_quantity(Quantity q) const {
-        if (_val == normal) return q;
+    constexpr Quantity to_normal_quantity(Quantity q) const {
+        if (_value == normal) return q;
         return -q;
     }
-    double calc_volume(double price, double quantity) const {
-        if (_val == normal) return price * quantity;
+    constexpr double calc_volume(double price, double quantity) const {
+        if (_value == normal) return price * quantity;
         else return quantity;
     }
 
-    double calc_quantity_from_volume(double price, double volume) const {
-        if (_val == normal) return volume / price;
+    constexpr double calc_quantity_from_volume(double price, double volume) const {
+        if (_value == normal) return volume / price;
         else return volume;
     }
-
-protected:
-    _ _val;
 };
 
 
@@ -140,6 +95,21 @@ public:
 struct KeyValue {
         std::string_view key;
         std::string_view value;
+};
+
+class ConfigError: public std::exception {
+public:
+    ConfigError(std::string field_name):_field_name(field_name) {}
+    virtual const char *what() const noexcept override {
+        std::ostringstream b;
+        b << "Error in configuration - field: " << _field_name;
+        _buffer = std::move(b.str());
+        return _buffer.c_str();
+    }
+protected:
+    std::string _field_name;
+    mutable std::string _buffer;
+
 };
 
 

@@ -4,6 +4,8 @@
 #include "event.h"
 #include "order_setup.h"
 #include "iterator.h"
+#include "parameters.h"
+#include "../lib/utils/serialize.h"
 #include <functional>
 
 namespace quarkbot {
@@ -12,6 +14,7 @@ namespace quarkbot {
 class StrategyContext {
 public:
 
+    ///each instrument can have label
     struct LabeledInstrument {
         std::string label;
         Instrument instrument;
@@ -115,9 +118,20 @@ public:
     ///Store string to database
     virtual void var_set_string(std::string_view name, std::string_view value) = 0;
 
-    ///retrieve string from database
-    virtual std::optional<std::string> var_get_string(std::string_view name) = 0;
+    template<typename T>
+    requires(requires(T v){serialize_to_string(v);})
+    void var_set(std::string_view name, const T &val) {
+        var_set_string(name, serialize_to_string(val));
+    }
 
+    ///retrieve string from database
+    virtual std::optional<std::string> var_get_string(std::string_view name) const = 0;
+
+    std::optional<any_serialized_value> var_get(std::string_view name) const {
+        auto r = var_get_string(name);
+        if (r) return std::optional{any_serialized_value{std::move(*r)}};
+        else return {};
+    }
 
     ///Retrieve multiple variables from the database
     /**
@@ -127,7 +141,7 @@ public:
      */
 
     virtual async_generator<KeyValue> var_list_range(std::string_view from_range,
-            std::string_view to_range, unsigned int skip_prefix = 0) = 0;
+            std::string_view to_range, unsigned int skip_prefix = 0) const = 0;
 
     virtual void var_erase(std::string_view key) = 0;
     ///Retrieve all recent fills
@@ -137,14 +151,14 @@ public:
      *
      * The generator eventually ends with very last fill, but you can destroy it anytime
      */
-    virtual async_generator<Fill> get_recent_fills() = 0;
+    virtual async_generator<Fill> get_recent_fills() const = 0;
 
     ///Retrieve all fills from given timestamp (forward)
     /**
      * @param timestamp time when start
      * @return all fills from given timestamp
      */
-    virtual async_generator<Fill> get_fills_from(TimeStamp tp) = 0;
+    virtual async_generator<Fill> get_fills_from(TimeStamp tp) const = 0;
 
     ///Restore open orders from database for given instrument
     /**Scans database and restores all orders for given instrument
@@ -203,6 +217,53 @@ public:
      * @retval false no route to target (invalid channel?)
      */
     virtual bool send_message(std::string_view channel, std::string_view message, unsigned int conversation_id = 0) = 0;
+
+
+    ///Retrieve strategy parameter from configuration
+    /**
+     * @param name parameter name
+     * @return string value if exists
+     */
+    virtual std::optional<std::string_view> get_param_string(std::string_view name) const;
+
+    ///Retrieve strategy parameter from configuration
+    /**
+     * @tparam T expected type
+     * @param name name of field
+     * @return value of the field
+     * @exception ConfigError if value cannot be retrieved
+     */
+    template<typename T>
+    T get_param(std::string_view name) const {
+        try {
+            auto sv = get_param_string(name);
+            if (!sv) throw std::runtime_error("Missing field");
+            parameter_parse<T> p;
+            return p(get_param);
+        } catch (...) {
+            std::throw_with_nested(ConfigError(std::string(name)));
+        }
+    }
+
+    ///Retrieve strategy parameter from configuration supporting default value
+    /**
+     * @tparam T expected type
+     * @param name name of field
+     * @param def_value  default value if field is missing
+     * @return value of the field
+     * @exception ConfigError if value is in unexpected format
+     */
+    template<typename T>
+    T get_param(std::string_view name, const T &def_value) const {
+        try {
+            auto sv = get_param_string(name);
+            if (!sv) return def_value;
+            parameter_parse<T> p;
+            return p(get_param);
+        } catch (...) {
+            std::throw_with_nested(ConfigError(std::string(name)));
+        }
+    }
 
 
 };
