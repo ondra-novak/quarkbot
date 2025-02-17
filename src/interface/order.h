@@ -15,11 +15,13 @@ class Order;
 
 class IEventTarget;
 
+constexpr int xxx = 10;
+
 DECLARE_ENUM_CLASS(OrderStateBase,
         unknown,        ///< state of an order is unknown
         associated,     ///< order is associated with account and instrument
         pending_new,    ///< order has been posted to exchange, no status received yet
-        open,           ///< order has been received by exchange and has been activated
+        open = xxx,           ///< order has been received by exchange and has been activated
         filled,         ///< order has been fully filled
         cancelled,      ///< order has been cancelled
         rejected,       ///< order has been rejected
@@ -100,6 +102,13 @@ public:
     const OrderSetup &get_setup() const {
         return _ptr->get_setup();
     }
+
+    template<typename T>
+    requires(std::is_base_of_v<OrderSetup, T>)
+    Handle<const T> get_setup_as() const {
+        return dynamic_cast<const T *>(&get_setup());
+    }
+
     ///Get order's total quantity to fill
     Quantity get_total_quantity() const {
         return _ptr->get_total_quantity();

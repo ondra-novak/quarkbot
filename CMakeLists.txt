@@ -26,5 +26,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 enable_testing()
 add_subdirectory("src/impl")
+add_subdirectory("src/examples")
 add_subdirectory("src/tests")
 

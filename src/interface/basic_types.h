@@ -112,5 +112,35 @@ protected:
 
 };
 
+class InvalidHandleAccess: public std::exception {
+public:
+    virtual const char *what() const noexcept override {
+        return "Invalid empty handle access";
+    }
+};
+
+template<typename T>
+class Handle {
+public:
+    constexpr Handle() = default;
+    constexpr Handle(T *ptr):_ptr(ptr) {}
+    constexpr Handle(const Handle &) = default;
+    constexpr Handle &operator=(const Handle &) = default;
+    constexpr T &operator *() const {
+        if (_ptr == nullptr) throw InvalidHandleAccess();
+        return *_ptr;
+    }
+    constexpr T *operator ->() const {
+        if (_ptr == nullptr) throw InvalidHandleAccess();
+        return _ptr;
+    }
+    constexpr explicit operator bool() const {return _ptr != nullptr;}
+    constexpr bool operator==(const Handle &other) const = default;
+    constexpr void reset() {_ptr = nullptr;}
+    constexpr void reset(T *x) {_ptr = x;}
+
+protected:
+    T *_ptr = nullptr;
+};
 
 } // namespace quarkbot
