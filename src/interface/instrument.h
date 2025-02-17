@@ -54,11 +54,11 @@ public:
     virtual InstrumentInfo get_info() const override {return {};}
     virtual Positions get_positions() const override {return {};}
 
-    virtual std::optional<TickData> get_ticker() const {return {};}
-    virtual std::optional<OrderBook> get_orderbook() const {return {};}
-    virtual std::optional<Trade> get_trade() const {return {};}
-    virtual std::optional<Index> get_index() const {return {};}
-    virtual std::optional<Funding> get_funding() const {return {};}
+    virtual std::optional<TickData> get_ticker() const override {return {};}
+    virtual std::optional<OrderBook> get_orderbook() const override {return {};}
+    virtual std::optional<Trade> get_trade() const override {return {};}
+    virtual std::optional<Index> get_index() const override {return {};}
+    virtual std::optional<Funding> get_funding() const override {return {};}
 };
 
 ///Information about instrument

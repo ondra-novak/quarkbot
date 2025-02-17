@@ -18,7 +18,7 @@ struct parameter_parse<std::string_view> {
 
 template<>
 struct parameter_parse<std::string> {
-    std::string_view operator()(std::string_view str) const  {
+    std::string operator()(std::string_view str) const  {
         return std::string(str);
     }
 };
@@ -43,7 +43,7 @@ struct parameter_parse<T> {
 template<typename T>
 requires(std::is_arithmetic_v<T>)
 struct parameter_parse<T> {
-    T operator()(std::string_view str) {
+    T operator()(std::string_view str) const {
         T value;
         auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
         if (ec != std::errc()) {

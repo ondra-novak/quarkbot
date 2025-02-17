@@ -164,7 +164,7 @@ public:
             std::vector<char> dynbuff;
             res = me.to_string(dynbuff);
         } else {
-            res = {buffer,result.ptr - buffer};
+            res = std::string_view(buffer,result.ptr - buffer);
         }
         stream << res;
         return stream;

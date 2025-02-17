@@ -42,7 +42,7 @@ public:
     virtual awaitable<void> on_idle() override;
     virtual awaitable<void> on_exception() override;
     virtual bool interrupt(TimerID id) override;
-    virtual TimeStamp get_event_time() const;
+    virtual TimeStamp get_event_time() const override;
 
     virtual void var_set_string(std::string_view name, std::string_view value) override;
     virtual std::optional<std::string> var_get_string(std::string_view name) const override ;
@@ -53,8 +53,8 @@ public:
     virtual async_generator<Fill> get_fills_from(TimeStamp tp) const override;
     virtual const Instruments &get_instruments() const override;
 
-    virtual void push_event(Event event);
-    virtual void set_subscription(const Instrument &instrument, MarketEvents event);
+    virtual void push_event(Event event) override;
+    virtual void set_subscription(const Instrument &instrument, MarketEvents event) override;
 
     virtual void subscribe_channel(const std::string_view channel) override;
     virtual void unsubscribe_channel(const std::string_view channel) override;

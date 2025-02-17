@@ -103,7 +103,7 @@ public:
     virtual const char *what() const noexcept override {
         std::ostringstream b;
         b << "Error in configuration - field: " << _field_name;
-        _buffer = std::move(b.str());
+        _buffer = std::move(b).str();
         return _buffer.c_str();
     }
 protected:

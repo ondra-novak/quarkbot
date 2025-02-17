@@ -67,15 +67,15 @@ public:
 
     virtual Instrument get_instrument() const override {return {};}
     virtual OrderState get_state() const  override {return {};}
-    virtual IEventTarget *get_event_target() const {return nullptr;}
-    virtual const OrderSetup &get_setup() const {return no_setup_order;}
-    virtual Quantity get_total_quantity() const {return {};}
-    virtual Quantity get_filled_quantity() const {return {};}
-    virtual Price get_avg_fill_price() const {return {};}
-    virtual std::span<Fill> get_fills() const {return {};}
-    virtual Order replace(Quantity new_quantity, const OrderSetup &params, std::string_view label = {}) const;
-    virtual std::string get_error() const {return {};}
-    virtual void cancel() const {}
+    virtual IEventTarget *get_event_target() const  override{return nullptr;}
+    virtual const OrderSetup &get_setup() const  override{return no_setup_order;}
+    virtual Quantity get_total_quantity() const  override{return {};}
+    virtual Quantity get_filled_quantity() const  override{return {};}
+    virtual Price get_avg_fill_price() const  override{return {};}
+    virtual std::span<Fill> get_fills() const  override{return {};}
+    virtual Order replace(Quantity new_quantity, const OrderSetup &params, std::string_view label = {}) const  override;
+    virtual std::string get_error() const  override {return {};}
+    virtual void cancel() const  override {}
 
 
 };
@@ -150,7 +150,7 @@ public:
         return _ptr->get_error();
     }
     ///Retrieve order's event target (this target receives order updates)
-    virtual IEventTarget *get_event_target() const {
+    IEventTarget *get_event_target() const {
         return _ptr->get_event_target();
     }
 

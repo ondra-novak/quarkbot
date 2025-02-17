@@ -239,7 +239,7 @@ public:
             auto sv = get_param_string(name);
             if (!sv) throw std::runtime_error("Missing field");
             parameter_parse<T> p;
-            return p(get_param);
+            return p(*sv);
         } catch (...) {
             std::throw_with_nested(ConfigError(std::string(name)));
         }
@@ -259,7 +259,7 @@ public:
             auto sv = get_param_string(name);
             if (!sv) return def_value;
             parameter_parse<T> p;
-            return p(get_param);
+            return p(*sv);
         } catch (...) {
             std::throw_with_nested(ConfigError(std::string(name)));
         }

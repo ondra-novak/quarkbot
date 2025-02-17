@@ -44,8 +44,8 @@ public:
     virtual double get_min_volume() const override {return {};}
     virtual double get_fee_ratio() const override {return {};}
     virtual MarketType get_type() const override {return {};}
-    virtual double get_quantity_multiplier() const {return 1.0;}
-    virtual double get_price_multiplier() const {return 1.0;}
+    virtual double get_quantity_multiplier() const override {return 1.0;}
+    virtual double get_price_multiplier() const override {return 1.0;}
 
 };
 

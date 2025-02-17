@@ -220,7 +220,7 @@ public:
     }
 
     template<std::size_t N, typename LoadFn>
-    T create_variant(LoadFn &&load_fn, std::size_t idx) {
+    static T create_variant(LoadFn &&load_fn, std::size_t idx) {
         if constexpr(N >= std::variant_size_v<T>) {
             throw SerializeSyncError();
         } else if (idx == N) {
